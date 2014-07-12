@@ -129,10 +129,10 @@ defmodule Relex.Release do
       advisable to override it without a good reason.
       """
       defcallback code_path do
-        lc path inlist :code.get_path, do: String.from_char_list!(path)
+        for path <- :code.get_path, do: String.from_char_list!(path)
       end
       def code_path(options) do
-        ebins = List.flatten(lc path inlist lib_dirs(options) do
+        ebins = List.flatten(for path <- lib_dirs(options) do
                                Path.wildcard(Path.join([Path.expand(path),"**","ebin"]))
                              end)
         ebins ++ code_path
@@ -216,7 +216,7 @@ defmodule Relex.Release do
       Module.register_attribute __MODULE__, :after_bundle, persist: true, accumulate: true
 
       def after_bundle(opts) do
-        lc {:after_bundle, [step]} inlist __info__(:attributes) do
+        for {:after_bundle, [step]} <- __info__(:attributes) do
           case step do
             callback when is_atom(callback) ->
               if function_exported?(__MODULE__, callback, 1) do
@@ -246,7 +246,7 @@ defmodule Relex.Release do
       Relex.Files.copy(files, src, target)
       if release.relocatable?(options) do
         templates = Path.wildcard(Path.join([target, "bin", "*.src"]))
-        lc template inlist templates do
+        for template <- templates do
           content = File.read!(template)
           new_content = String.replace(content, "%FINAL_ROOTDIR%", "$(cd ${0%/*} && pwd)/../..", global: true)
           new_file = Path.join([target, "bin", Path.basename(template, ".src")])
@@ -266,7 +266,7 @@ defmodule Relex.Release do
     path = Path.join([options[:path] || File.cwd!, release.name(options)])
     bin_path = Path.join(path, "bin")
     File.mkdir_p!(bin_path)
-    lc executable inlist ~w(elixir iex) do
+    for executable <- ~w(elixir iex) do
       executable_path = System.find_executable(executable)
       File.cp!(executable_path, Path.join(bin_path, Path.basename(executable)))
     end
@@ -305,7 +305,7 @@ defmodule Relex.Release do
 
   def bundle!(:applications, apps, release, options) do
     path = Path.expand(Path.join([options[:path] || File.cwd!, release.name(options), "lib"]))
-    apps_files = lc app inlist apps do
+    apps_files = for app <- apps do
       src = Path.expand(Relex.App.path(app))
       files = Relex.Files.files(src,
                                 fn(file) ->
@@ -313,7 +313,7 @@ defmodule Relex.Release do
                                 end)
       {app, src, files}
     end
-    lc {app, src, files} inlist apps_files do
+    for {app, src, files} <- apps_files do
       target = Path.join(path, "#{Relex.App.name(app)}-#{Relex.App.version(app)}")
       Relex.Files.copy(files, src, target)
     end
@@ -324,7 +324,7 @@ defmodule Relex.Release do
     File.mkdir_p! path
     rel_file = Path.join(path, "#{name}.rel")
     File.write rel_file, :io_lib.format("~p.~n",[resource])
-    code_path = lc path inlist code_path, do: to_char_list(path)
+    code_path = for path <- code_path, do: to_char_list(path)
     :systools.make_script(to_char_list(Path.join(path, name)), [path: code_path, outdir: to_char_list(path)])
   end
 
@@ -356,12 +356,12 @@ defmodule Relex.Release do
   end
 
   def rel(name, version, erts, apps) do
-    {:release, 
+    {:release,
         {to_char_list(name), to_char_list(version)},
         {:erts, to_char_list(erts)},
-        (lc app inlist apps do
+        (for app <- apps do
           {Relex.App.name(app), Relex.App.version(app), Relex.App.type(app),
-           (lc inc_app inlist Relex.App.included_applications(app), do: Relex.App.name(inc_app))}
+           (for inc_app <- Relex.App.included_applications(app), do: Relex.App.name(inc_app))}
         end)}
   end
 
@@ -377,8 +377,8 @@ defmodule Relex.Release do
 
   defp apps(release, options) do
     requirements = release.basic_applications(options) ++ release.applications(options)
-    apps = lc req inlist requirements, do: Relex.App.code_path(release.code_path(options), Relex.App.new(req))
-    deps = List.flatten(lc app inlist apps, do: deps(app))
+    apps = for req <- requirements, do: Relex.App.code_path(release.code_path(options), Relex.App.new(req))
+    deps = List.flatten(for app <- apps, do: deps(app))
     apps = Enum.uniq(apps ++ deps)
     apps =
     Dict.values(Enum.reduce apps, HashDict.new,
@@ -400,7 +400,7 @@ defmodule Relex.Release do
 
   defp deps(app) do
     deps = Relex.App.dependencies(app)
-    deps = deps ++ (lc app inlist deps, do: deps(app))
+    deps = deps ++ (for app <- deps, do: deps(app))
     List.flatten(deps)
   end
 
