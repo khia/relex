@@ -314,7 +314,7 @@ defmodule Relex.Release do
       {app, src, files}
     end
     for {app, src, files} <- apps_files do
-      target = Path.join(path, "#{Relex.App.name(app)}-#{Relex.App.version(app)}")
+      target = Path.join(path, "#{app.name}-#{Relex.App.version(app)}")
       Relex.Files.copy(files, src, target)
     end
     apps
@@ -360,8 +360,8 @@ defmodule Relex.Release do
         {to_char_list(name), to_char_list(version)},
         {:erts, to_char_list(erts)},
         (for app <- apps do
-          {Relex.App.name(app), Relex.App.version(app), Relex.App.type(app),
-           (for inc_app <- Relex.App.included_applications(app), do: Relex.App.name(inc_app))}
+          {app.name, Relex.App.version(app), app.type,
+           (for inc_app <- Relex.App.included_applications(app), do: inc_app.name)}
         end)}
   end
 
@@ -385,7 +385,7 @@ defmodule Relex.Release do
     apps =
     Dict.values(Enum.reduce apps, HashDict.new,
                 fn(app, acc) ->
-                  name = Relex.App.name(app)
+                  name = app.name
                   if existing_app = Dict.get(acc, name) do
                     if Relex.App.version(app) >
                        Relex.App.version(existing_app) do
