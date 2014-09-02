@@ -377,7 +377,9 @@ defmodule Relex.Release do
 
   defp apps(release, options) do
     requirements = release.basic_applications(options) ++ release.applications(options)
-    apps = for req <- requirements, do: Relex.App.code_path(release.code_path(options), Relex.App.new(req))
+    apps = for req <- requirements do
+      %Relex.App{Relex.App.new(req) | code_path: release.code_path(options)}
+    end
     deps = List.flatten(for app <- apps, do: deps(app))
     apps = Enum.uniq(apps ++ deps)
     apps =
