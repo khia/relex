@@ -117,7 +117,7 @@ defmodule Relex.Release do
       your root directory to be copied over into the release.
       """
       defcallback erts_version do
-        String.from_char_list!(:erlang.system_info(:version))
+        List.to_string(:erlang.system_info(:version))
       end
 
       @doc """
@@ -129,7 +129,7 @@ defmodule Relex.Release do
       advisable to override it without a good reason.
       """
       defcallback code_path do
-        for path <- :code.get_path, do: String.from_char_list!(path)
+        for path <- :code.get_path, do: List.to_string(path)
       end
       def code_path(options) do
         ebins = List.flatten(for path <- lib_dirs(options) do
@@ -151,7 +151,7 @@ defmodule Relex.Release do
       Do not override it unless you have a good reason.
       """
       defcallback root_dir do
-        String.from_char_list!(:code.root_dir)
+        List.to_string(:code.root_dir)
       end
 
       @doc """
