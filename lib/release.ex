@@ -255,7 +255,7 @@ defmodule Relex.Release do
           end
           File.write!(new_file, new_content)
           stat = File.stat!(template)
-          File.write_stat!(new_file, File.Stat.mode(493, stat))
+          File.write_stat!(new_file, %File.Stat{stat | mode: 493})
         end
       end
     end
@@ -292,7 +292,7 @@ defmodule Relex.Release do
     exec $SCRIPT_PATH/../#{Path.relative_to(erts_bin_path, path)}/erl "$@"
     """
     stat = File.stat!(new_erl)
-    File.write_stat!(new_erl, File.Stat.mode(493, stat))
+    File.write_stat!(new_erl, %File.Stat{stat | mode: 493})
     rel_path = Path.join(path, "releases")
     rel_file = Path.join([rel_path, release.version(options), "#{release.name(options)}.rel"])
     :release_handler.create_RELEASES(to_char_list(path), to_char_list(rel_file))
