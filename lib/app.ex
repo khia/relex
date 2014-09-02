@@ -93,7 +93,7 @@ defmodule Relex.App do
 
   defp keys(rec) do
     {:application, _, opts} = app(rec)
-    Keyword.from_enum(opts)
+    opts
   end
 
 end
