@@ -67,7 +67,6 @@ defmodule Relex.Release do
       * path: path where the repository will be created, by default File.cwd!
       """
       def assemble!(opts \\ []) do
-        :ets.new(Relex.App, [:public, :named_table, :ordered_set])
         apps = bundle!(:applications, opts)
         write_script!(apps, opts)
         if include_erts?(opts), do: bundle!(:erts, opts)
@@ -77,7 +76,6 @@ defmodule Relex.Release do
           write_start_clean!(opts)
           unless default_release?(opts), do: make_default_release("start_clean", opts)
         end
-        :ets.delete(Relex.App)
         after_bundle(opts)
       end
 
@@ -304,6 +302,7 @@ defmodule Relex.Release do
   end
 
   def bundle!(:applications, apps, release, options) do
+    ensure_exists
     path = Path.expand(Path.join([options[:path] || File.cwd!, release.name(options), "lib"]))
     apps_files = for app <- apps do
       src = Path.expand(Relex.App.path(app))
@@ -317,6 +316,7 @@ defmodule Relex.Release do
       target = Path.join(path, "#{app.name}-#{Relex.App.version(app)}")
       Relex.Files.copy(files, src, target)
     end
+    cleanup
     apps
   end
 
@@ -356,13 +356,17 @@ defmodule Relex.Release do
   end
 
   def rel(name, version, erts, apps) do
+    ensure_exists
+    spec =
+      for app <- apps do
+        {app.name, Relex.App.version(app), app.type,
+         (for inc_app <- Relex.App.included_applications(app), do: inc_app.name)}
+      end
+    cleanup
     {:release,
         {to_char_list(name), to_char_list(version)},
         {:erts, to_char_list(erts)},
-        (for app <- apps do
-          {app.name, Relex.App.version(app), app.type,
-           (for inc_app <- Relex.App.included_applications(app), do: inc_app.name)}
-        end)}
+        spec}
   end
 
   def make_default_release(release, boot_name, options) do
@@ -401,8 +405,10 @@ defmodule Relex.Release do
   end
 
   defp deps(app) do
+    ensure_exists
     deps = Relex.App.dependencies(app)
     deps = deps ++ (for app <- deps, do: deps(app))
+    cleanup
     List.flatten(deps)
   end
 
@@ -423,9 +429,19 @@ defmodule Relex.Release do
     end
   end
 
+  defp ensure_exists do
+    if :ets.info(Relex.App, :size) == :undefined do
+      :ets.new(Relex.App, [:public, :named_table, :ordered_set])
+    end
+  end
+  defp cleanup do
+    unless :ets.info(Relex.App, :size) == :undefined do
+      :ets.delete(Relex.App)
+    end
+  end
+
 end
 
 defmodule Relex.Release.Template do
   use Relex.Release
 end
-
