@@ -105,7 +105,7 @@ defimpl Inspect, for: Relex.App do
       version when is_function(version) -> "<version checked by #{inspect(version)}>"
       _ -> nil
     end
-    version = if nil?(version), do: "", else: "-#{version}"
-    "#{name}#{version}"
+    version = if is_nil(version), do: "", else: "-#{version}"
+    "#App{#{name}#{version}}"
   end
 end
